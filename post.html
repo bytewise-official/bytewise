@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What I Learned Debugging a Memory Leak for Three Days — Bytewise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFF2ED;
+    --paper-alt:#E4E8DE;
+    --ink:#14181C;
+    --ink-soft:#4A5057;
+    --line:#CBD1C3;
+    --blue:#2A5FF0;
+    --amber:#D98A1F;
+    --code-bg:#14181C;
+    --code-text:#EFF2ED;
+    --radius:2px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;text-decoration:none;}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+  .article-wrap{max-width:720px;margin:0 auto;padding:0 32px;}
+
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(239,242,237,0.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{display:flex;align-items:center;justify-content:space-between;height:76px;}
+  .logo{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;
+    letter-spacing:-0.02em;display:flex;align-items:center;gap:2px;
+  }
+  .logo .dot{color:var(--blue);}
+  .navlinks{display:flex;gap:36px;font-size:14px;font-weight:500;}
+  .navlinks a{color:var(--ink-soft);transition:color .2s;}
+  .navlinks a:hover{color:var(--ink);}
+  @media (max-width:720px){ .navlinks{display:none;} }
+
+  /* progress bar tied to reading position */
+  .progress{
+    position:fixed;top:0;left:0;height:2px;background:var(--blue);
+    width:0%;z-index:60;transition:width .1s linear;
+  }
+
+  .backlink{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);
+    margin:40px 0 32px;transition:color .2s;
+  }
+  .backlink:hover{color:var(--blue);}
+
+  .art-tag{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--blue);margin-bottom:16px;
+  }
+  h1.art-title{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;
+    font-size:clamp(30px,4.4vw,46px);line-height:1.08;letter-spacing:-0.02em;
+    margin-bottom:24px;
+  }
+  .art-meta{
+    display:flex;gap:14px;flex-wrap:wrap;align-items:center;
+    font-size:13px;color:var(--ink-soft);
+    padding-bottom:32px;margin-bottom:32px;border-bottom:1px solid var(--line);
+  }
+  .weight-tag{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--paper-alt);
+    border:1px solid var(--line);padding:3px 8px;border-radius:var(--radius);
+  }
+
+  .art-body{font-size:17px;color:var(--ink);}
+  .art-body p{margin-bottom:22px;}
+  .art-body p.lede{
+    font-size:19px;color:var(--ink-soft);
+  }
+  .art-body h2{
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:24px;
+    letter-spacing:-0.01em;margin:44px 0 16px;
+  }
+  .art-body blockquote{
+    border-left:2px solid var(--blue);padding-left:20px;margin:28px 0;
+    font-family:'Space Grotesk',sans-serif;font-size:19px;color:var(--ink);
+    font-weight:500;line-height:1.4;
+  }
+  .art-body code{
+    font-family:'IBM Plex Mono',monospace;font-size:14px;
+    background:var(--paper-alt);padding:2px 6px;border-radius:3px;
+  }
+  .code-block{
+    background:var(--code-bg);color:var(--code-text);
+    border-radius:6px;padding:22px 24px;margin:28px 0;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.7;
+    overflow-x:auto;
+  }
+  .code-block .c1{color:#7C8894;}
+  .code-block .c2{color:#5FD3A6;}
+  .code-block .c3{color:#E8A33D;}
+
+  .art-footer{
+    margin-top:56px;padding-top:28px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;
+  }
+  .author-card{display:flex;align-items:center;gap:12px;}
+  .avatar{
+    width:40px;height:40px;border-radius:50%;background:var(--blue);
+    color:var(--paper);display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;
+  }
+  .author-name{font-size:14px;font-weight:600;}
+  .author-role{font-size:12px;color:var(--ink-soft);}
+
+  .up-next{
+    max-width:1180px;margin:80px auto 0;padding:56px 32px;
+    border-top:1px solid var(--line);
+  }
+  .up-next-label{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--ink-soft);margin-bottom:20px;
+  }
+  .up-next-card{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:22px 0;border-top:1px solid var(--line);gap:20px;
+    transition:padding-left .2s;
+  }
+  .up-next-card:hover{padding-left:8px;color:var(--blue);}
+  .up-next-card h3{
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;
+    letter-spacing:-0.01em;
+  }
+  .up-next-card .weight{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+
+  footer{
+    border-top:1px solid var(--line);padding:32px;max-width:1180px;margin:0 auto;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;color:var(--ink-soft);flex-wrap:wrap;gap:12px;
+  }
+  footer .flinks{display:flex;gap:24px;}
+  footer a:hover{color:var(--ink);}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progressBar"></div>
+
+<header>
+  <nav class="wrap">
+    <a href="index.html" class="logo">Bytewise<span class="dot">.</span></a>
+    <div class="navlinks">
+      <a href="index.html#latest">Latest</a>
+      <a href="index.html#series">Series</a>
+      <a href="index.html#about">About</a>
+      <a href="index.html#subscribe">Subscribe</a>
+    </div>
+  </nav>
+</header>
+
+<article class="article-wrap">
+  <a href="index.html" class="backlink">← Back to all posts</a>
+
+  <div class="art-tag">Systems &amp; Performance</div>
+  <h1 class="art-title">What I Learned Debugging a Memory Leak for Three Days Straight</h1>
+
+  <div class="art-meta">
+    <span>Faheem</span>
+    <span>·</span>
+    <span>Aug 22, 2026</span>
+    <span>·</span>
+    <span class="weight-tag">14.6 KB read</span>
+  </div>
+
+  <div class="art-body">
+    <p class="lede">It wasn't the allocator, the GC, or the framework. It was a closure holding a reference nobody meant to keep — and it took three days, four false leads, and one very ugly heap snapshot to find it.</p>
+
+    <p>The symptom was simple: memory climbed steadily on a page that should have had a flat footprint. No crashes, no errors in the console — just a tab that got heavier the longer it stayed open, until the browser eventually gave up.</p>
+
+    <h2>Day one: chasing the wrong thing</h2>
+    <p>My first instinct was the usual suspect — event listeners piling up on every re-render. I stripped them out one component at a time, watched the memory graph, and got nothing. The line kept climbing at the same steady rate, completely indifferent to what I'd just removed.</p>
+
+    <blockquote>If removing code doesn't change the graph, you're not looking at the code that matters.</blockquote>
+
+    <p>That line, scribbled in my notes at the end of day one, is the only thing that kept me from giving up on day two.</p>
+
+    <h2>Day two: the heap snapshot that actually mattered</h2>
+    <p>Chrome's DevTools memory panel lets you take two snapshots and diff them. I'd tried this before and skimmed past the results — too much noise, too many retained objects with names like <code>(closure)</code> and <code>(array)</code>. This time I let it sit for ten minutes between snapshots instead of ten seconds, and the noise fell away. One retainer had grown by over four thousand instances.</p>
+
+    <div class="code-block">
+<span class="c1">// heap_snapshot.diff</span>
++ <span class="c2">retained:</span> onScroll closure × 4,812
++ <span class="c3">size:</span> 2.1 MB and climbing
+- listener never unbound on unmount
+    </div>
+
+    <p>A scroll listener, attached in a component that mounted and unmounted constantly as the user navigated a list. The listener was never removed. Every mount created a new closure over the component's state, and every one of those closures stayed alive in memory long after the component was gone — kept there by the one thing I hadn't thought to check: the browser's own event target.</p>
+
+    <h2>Day three: the fix, and the lesson</h2>
+    <p>The fix was one line — a cleanup function returned from the effect that attached the listener in the first place. Unglamorous, obvious in hindsight, and easy to miss because nothing about it threw an error.</p>
+
+    <div class="code-block">
+<span class="c1">// fix: 1 line, 3 days later</span>
+return () =&gt; el.removeEventListener('scroll', onScroll)
+    </div>
+
+    <p>The real lesson wasn't about scroll listeners. It was that a leak rarely announces itself where you're looking. The code that's growing isn't always the code that's guilty — it's usually whatever's holding a reference to it. Once I started asking "what's keeping this alive" instead of "what's creating too much," the search got a lot shorter.</p>
+
+    <p>Next time, I'm reaching for the heap diff on day one, not day two.</p>
+  </div>
+
+  <div class="art-footer">
+    <div class="author-card">
+      <div class="avatar">F</div>
+      <div>
+        <div class="author-name">Faheem</div>
+        <div class="author-role">Writes Bytewise</div>
+      </div>
+    </div>
+    <span class="weight-tag">14.6 KB</span>
+  </div>
+</article>
+
+<div class="up-next">
+  <div class="up-next-label">Up next</div>
+  <a href="#" class="up-next-card">
+    <h3>Why Rust's Borrow Checker Finally Clicked for Me</h3>
+    <span class="weight">9.8 KB</span>
+  </a>
+  <a href="#" class="up-next-card">
+    <h3>The Hidden Cost of Microservices Nobody Puts on the Slide</h3>
+    <span class="weight">11.2 KB</span>
+  </a>
+</div>
+
+<footer>
+  <div>© 2026 Bytewise. Written one byte at a time.</div>
+  <div class="flinks">
+    <a href="index.html#latest">Latest</a>
+    <a href="index.html#series">Series</a>
+    <a href="index.html#subscribe">Subscribe</a>
+  </div>
+</footer>
+
+<script>
+  const bar = document.getElementById('progressBar');
+  window.addEventListener('scroll', () => {
+    const h = document.documentElement;
+    const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+    bar.style.width = scrolled + '%';
+  });
+</script>
+
+</body>
+</html>

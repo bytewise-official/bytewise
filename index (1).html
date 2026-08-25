@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bytewise — Tech, measured.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFF2ED;
+    --paper-alt:#E4E8DE;
+    --ink:#14181C;
+    --ink-soft:#4A5057;
+    --line:#CBD1C3;
+    --blue:#2A5FF0;
+    --amber:#D98A1F;
+    --code-bg:#14181C;
+    --code-text:#EFF2ED;
+    --radius:2px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;text-decoration:none;}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:3px;}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+
+  /* ---- NAV ---- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(239,242,237,0.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{display:flex;align-items:center;justify-content:space-between;height:76px;}
+  .logo{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:-0.02em;
+    display:flex;align-items:center;gap:2px;
+  }
+  .logo .dot{color:var(--blue);}
+  .navlinks{display:flex;gap:36px;font-size:14px;font-weight:500;}
+  .navlinks a{position:relative;color:var(--ink-soft);transition:color .2s;}
+  .navlinks a:hover{color:var(--ink);}
+  .navlinks a::after{
+    content:"";position:absolute;left:0;bottom:-6px;width:0;height:1px;
+    background:var(--blue);transition:width .25s;
+  }
+  .navlinks a:hover::after{width:100%;}
+  .navlinks{display:flex;}
+  @media (max-width:720px){ .navlinks{display:none;} }
+
+  /* ---- HERO ---- */
+  .hero{
+    padding:96px 0 72px;
+    border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--blue);
+    margin-bottom:20px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow::before{content:"";width:22px;height:1px;background:var(--blue);}
+  h1.headline{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:clamp(40px,6vw,74px);
+    line-height:0.98;
+    letter-spacing:-0.03em;
+    max-width:14ch;
+  }
+  .headline em{font-style:normal;color:var(--blue);}
+  .hero-sub{
+    margin-top:26px;
+    font-size:18px;
+    color:var(--ink-soft);
+    max-width:46ch;
+  }
+  .hero-meta{
+    margin-top:44px;
+    display:flex;gap:48px;flex-wrap:wrap;
+    padding-top:28px;
+    border-top:1px solid var(--line);
+  }
+  .meta-stat .num{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:26px;font-weight:500;
+  }
+  .meta-stat .lbl{
+    font-size:12px;color:var(--ink-soft);
+    text-transform:uppercase;letter-spacing:.08em;margin-top:4px;
+  }
+
+  /* ---- BYTE RULER (signature element) ---- */
+  .ruler-wrap{
+    position:absolute;right:32px;top:96px;bottom:0;
+    width:64px;
+    display:none;
+  }
+  @media (min-width:1020px){ .ruler-wrap{display:block;} }
+  .ruler-track{
+    position:relative;height:100%;
+    border-left:1px solid var(--line);
+  }
+  .ruler-tick{
+    position:absolute;left:0;
+    display:flex;align-items:center;gap:6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;color:var(--ink-soft);
+  }
+  .ruler-tick::before{content:"";width:9px;height:1px;background:var(--line);}
+
+  /* ---- SECTION LABELS ---- */
+  .section-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding:56px 0 28px;
+  }
+  .section-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:28px;font-weight:600;letter-spacing:-0.01em;
+  }
+  .section-count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;color:var(--ink-soft);
+  }
+
+  /* ---- FEATURED ---- */
+  .featured{
+    display:grid;grid-template-columns:1.1fr 0.9fr;gap:56px;
+    padding-bottom:64px;border-bottom:1px solid var(--line);
+    align-items:start;
+  }
+  @media (max-width:860px){ .featured{grid-template-columns:1fr;gap:32px;} }
+  .featured-tag{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:.1em;color:var(--blue);
+    margin-bottom:14px;
+  }
+  .featured h2{
+    font-family:'Space Grotesk',sans-serif;font-weight:600;
+    font-size:clamp(26px,3vw,36px);line-height:1.12;letter-spacing:-0.01em;
+    margin-bottom:16px;
+  }
+  .featured h2 a{transition:color .2s;}
+  .featured h2 a:hover{color:var(--blue);}
+  .featured p{color:var(--ink-soft);font-size:16px;max-width:52ch;}
+  .byline{
+    margin-top:22px;display:flex;gap:16px;align-items:center;
+    font-size:13px;color:var(--ink-soft);
+  }
+  .weight-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;background:var(--paper-alt);
+    border:1px solid var(--line);
+    padding:3px 8px;border-radius:var(--radius);
+    color:var(--ink);
+  }
+  .code-panel{
+    background:var(--code-bg);color:var(--code-text);
+    border-radius:6px;padding:24px 26px;
+    font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.7;
+    overflow:hidden;position:relative;
+  }
+  .code-panel .l1{color:#7C8894;}
+  .code-panel .l2{color:#5FD3A6;}
+  .code-panel .l3{color:#E8A33D;}
+  .code-panel .l4{color:var(--code-text);}
+
+  /* ---- GRID ---- */
+  .grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    margin-bottom:72px;
+  }
+  @media (max-width:860px){ .grid{grid-template-columns:1fr;} }
+  .card{
+    background:var(--paper);padding:32px 28px;
+    display:flex;flex-direction:column;
+    opacity:0;transform:translateY(14px);
+    transition:opacity .5s ease, transform .5s ease, background .2s;
+  }
+  .card.in{opacity:1;transform:translateY(0);}
+  .card:hover{background:var(--paper-alt);}
+  .card .tag{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--amber);
+    margin-bottom:14px;
+  }
+  .card h3{
+    font-family:'Space Grotesk',sans-serif;font-weight:600;
+    font-size:19px;line-height:1.25;letter-spacing:-0.01em;
+    margin-bottom:10px;flex-grow:0;
+  }
+  .card p{font-size:14px;color:var(--ink-soft);margin-bottom:20px;flex-grow:1;}
+  .card .foot{
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;padding-top:14px;border-top:1px solid var(--line);
+  }
+  .card .foot .weight{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);}
+  .card .foot .read{color:var(--blue);font-weight:500;}
+
+  /* ---- SUBSCRIBE ---- */
+  .subscribe{
+    padding:64px 0 80px;border-top:1px solid var(--line);
+    display:grid;grid-template-columns:1fr auto;gap:32px;align-items:center;
+  }
+  @media (max-width:720px){ .subscribe{grid-template-columns:1fr;} }
+  .subscribe h2{
+    font-family:'Space Grotesk',sans-serif;font-weight:600;
+    font-size:clamp(24px,3vw,32px);letter-spacing:-0.01em;margin-bottom:8px;
+  }
+  .subscribe p{color:var(--ink-soft);font-size:15px;}
+  form{display:flex;gap:0;min-width:340px;}
+  input[type=email]{
+    flex:1;padding:14px 16px;border:1px solid var(--ink);border-right:none;
+    background:var(--paper);font-family:'Inter',sans-serif;font-size:14px;
+    border-radius:var(--radius) 0 0 var(--radius);
+  }
+  input[type=email]:focus{outline:none;}
+  button{
+    padding:14px 22px;background:var(--ink);color:var(--paper);
+    border:1px solid var(--ink);font-family:'IBM Plex Mono',monospace;
+    font-size:13px;cursor:pointer;border-radius:0 var(--radius) var(--radius) 0;
+    transition:background .2s;
+  }
+  button:hover{background:var(--blue);border-color:var(--blue);}
+
+  footer{
+    border-top:1px solid var(--line);padding:32px 0;
+    display:flex;justify-content:space-between;align-items:center;
+    font-size:12px;color:var(--ink-soft);flex-wrap:wrap;gap:12px;
+  }
+  footer .flinks{display:flex;gap:24px;}
+  footer a:hover{color:var(--ink);}
+
+  @media (prefers-reduced-motion:reduce){
+    .card{transition:none;opacity:1;transform:none;}
+    html{scroll-behavior:auto;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <div class="logo">Bytewise<span class="dot">.</span></div>
+    <div class="navlinks">
+      <a href="#latest">Latest</a>
+      <a href="#series">Series</a>
+      <a href="#about">About</a>
+      <a href="#subscribe">Subscribe</a>
+    </div>
+  </nav>
+</header>
+
+<section class="hero wrap">
+  <div class="eyebrow mono">Est. 2024 — dispatched weekly</div>
+  <h1 class="headline">Tech writing, <em>measured</em> in bytes, not buzzwords.</h1>
+  <p class="hero-sub">Bytewise is a field notebook on programming, systems, and the tools we build with — every piece weighed, trimmed, and shipped only when it earns its size.</p>
+
+  <div class="hero-meta">
+    <div class="meta-stat">
+      <div class="num mono" id="statPosts">0</div>
+      <div class="lbl">Posts published</div>
+    </div>
+    <div class="meta-stat">
+      <div class="num mono" id="statBytes">0 KB</div>
+      <div class="lbl">Total written</div>
+    </div>
+    <div class="meta-stat">
+      <div class="num mono">0%</div>
+      <div class="lbl">Filler tolerated</div>
+    </div>
+  </div>
+
+  <div class="ruler-wrap">
+    <div class="ruler-track" id="rulerTrack"></div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="section-head" id="latest">
+    <div class="section-title">Featured</div>
+    <div class="section-count mono">001 / this week</div>
+  </div>
+
+  <div class="featured">
+    <div>
+      <div class="featured-tag">Systems &amp; Performance</div>
+      <h2><a href="#">What I Learned Debugging a Memory Leak for Three Days Straight</a></h2>
+      <p>It wasn't the allocator, the GC, or the framework. It was a closure holding a reference nobody meant to keep. A walkthrough of the tools, dead ends, and the one graph that finally gave it away.</p>
+      <div class="byline">
+        <span>Faheem</span>
+        <span>·</span>
+        <span>Aug 22, 2026</span>
+        <span class="weight-tag">14.6 KB read</span>
+      </div>
+    </div>
+    <div class="code-panel">
+      <div class="l1">// heap_snapshot.diff</div>
+      <div class="l4">+ <span class="l2">retained:</span> onScroll closure × 4,812</div>
+      <div class="l4">+ <span class="l3">size:</span> 2.1 MB and climbing</div>
+      <div class="l4">- listener never unbound on unmount</div>
+      <div class="l4">&nbsp;</div>
+      <div class="l1">// fix: 1 line, 3 days later</div>
+      <div class="l4">return () =&gt; el.removeEventListener(...)</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div class="section-title">Recent posts</div>
+    <div class="section-count mono">showing 6</div>
+  </div>
+</div>
+
+<div class="grid" id="cardGrid">
+  <article class="card">
+    <div class="tag">Languages</div>
+    <h3>Why Rust's Borrow Checker Finally Clicked for Me</h3>
+    <p>Not through theory — through three weeks of fighting it on a real project until the rules stopped feeling like punishment.</p>
+    <div class="foot"><span class="weight mono">9.8 KB</span><span class="read">Read →</span></div>
+  </article>
+  <article class="card">
+    <div class="tag">Architecture</div>
+    <h3>The Hidden Cost of Microservices Nobody Puts on the Slide</h3>
+    <p>Latency, ownership, and the on-call rotation nobody budgeted for when the diagram looked so clean.</p>
+    <div class="foot"><span class="weight mono">11.2 KB</span><span class="read">Read →</span></div>
+  </article>
+  <article class="card">
+    <div class="tag">Local-first</div>
+    <h3>Building a Local-First App with SQLite and WASM</h3>
+    <p>Shipping an editor that works on a plane, syncs when you land, and never shows a spinner.</p>
+    <div class="foot"><span class="weight mono">16.4 KB</span><span class="read">Read →</span></div>
+  </article>
+  <article class="card">
+    <div class="tag">Craft</div>
+    <h3>Notes on Reading Someone Else's Codebase</h3>
+    <p>A method for getting oriented in 200,000 lines of unfamiliar code without touching a single file first.</p>
+    <div class="foot"><span class="weight mono">7.5 KB</span><span class="read">Read →</span></div>
+  </article>
+  <article class="card">
+    <div class="tag">Tooling</div>
+    <h3>Your Linter Is Lying to You About Code Quality</h3>
+    <p>Zero warnings and a codebase nobody can navigate can coexist. What linters actually measure, and what they don't.</p>
+    <div class="foot"><span class="weight mono">8.9 KB</span><span class="read">Read →</span></div>
+  </article>
+  <article class="card">
+    <div class="tag">Databases</div>
+    <h3>Indexes Are a Bet, Not a Free Lunch</h3>
+    <p>Every index you add is a trade you make on future writes. Here's how to make that trade on purpose.</p>
+    <div class="foot"><span class="weight mono">10.1 KB</span><span class="read">Read →</span></div>
+  </article>
+</div>
+
+<div class="wrap">
+  <div class="subscribe" id="subscribe">
+    <div>
+      <h2>Get the next dispatch.</h2>
+      <p>One email a week. No sponsored posts, no padded word counts — just what fit and what didn't.</p>
+    </div>
+    <form onsubmit="return false;">
+      <input type="email" placeholder="you@domain.com" required>
+      <button type="submit">Subscribe</button>
+    </form>
+  </div>
+</div>
+
+<footer class="wrap" id="about">
+  <div>© 2026 Bytewise. Written one byte at a time.</div>
+  <div class="flinks">
+    <a href="#latest">Latest</a>
+    <a href="#series">Series</a>
+    <a href="#subscribe">Subscribe</a>
+  </div>
+</footer>
+
+<script>
+  // Animate hero stats
+  function animateNum(el, target, suffix, duration){
+    let start = null;
+    function step(ts){
+      if(!start) start = ts;
+      const progress = Math.min((ts - start)/duration, 1);
+      const val = Math.floor(progress * target);
+      el.textContent = val.toLocaleString() + suffix;
+      if(progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const postsEl = document.getElementById('statPosts');
+  const bytesEl = document.getElementById('statBytes');
+  if(reduceMotion){
+    postsEl.textContent = '47';
+    bytesEl.textContent = '612 KB';
+  } else {
+    animateNum(postsEl, 47, '', 1200);
+    animateNum(bytesEl, 612, ' KB', 1200);
+  }
+
+  // Byte ruler ticks
+  const track = document.getElementById('rulerTrack');
+  if(track){
+    const ticks = ['0KB','2KB','4KB','6KB','8KB','10KB','12KB','14KB','16KB'];
+    ticks.forEach((label,i)=>{
+      const t = document.createElement('div');
+      t.className = 'ruler-tick mono';
+      t.style.top = (i * (100/(ticks.length-1))) + '%';
+      t.innerHTML = label;
+      track.appendChild(t);
+    });
+  }
+
+  // Reveal cards on scroll
+  const cards = document.querySelectorAll('.card');
+  if('IntersectionObserver' in window && !reduceMotion){
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach((entry, idx)=>{
+        if(entry.isIntersecting){
+          setTimeout(()=> entry.target.classList.add('in'), idx * 60);
+          io.unobserve(entry.target);
+        }
+      });
+    }, {threshold:0.15});
+    cards.forEach(c=>io.observe(c));
+  } else {
+    cards.forEach(c=>c.classList.add('in'));
+  }
+</script>
+
+</body>
+</html>
